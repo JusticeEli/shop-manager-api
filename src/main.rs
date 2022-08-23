@@ -32,6 +32,8 @@ async fn main() -> std::io::Result<()> {
             };
     }
 
+    request_airdrop_for_current_wallet(&shop_configurations);
+
     HttpServer::new(|| {
         let shop_state = match get_shop_state(&shop_configurations) {
             Ok(shop_state) => shop_state,
@@ -44,13 +46,22 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .app_data(Data::new(shop_state))
-            .app_data(get_account_key_pair())
             .service(routes::initialize)
             .service(routes::insert_goods)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
+}
+
+fn request_airdrop_for_current_wallet(
+    shop_configurations: &ShopConfigurations,
+) -> ShopResult<String> {
+    let program = try_get_program(&shop_configurations)
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    let payer = program.payer();
+    let tx_id = routes::check_balance_of_fee_payer_and_airdrop(&program)?;
+    Ok(tx_id)
 }
 
 fn setup_environment_and_get_configurations() -> ShopResult<ShopConfigurations> {
@@ -135,8 +146,9 @@ fn try_get_program(shop_configurations: &ShopConfigurations) -> ShopResult<Progr
 }
 
 fn keypair_from_bytes(key_pair_bytes: &[u8]) -> ShopResult<Keypair> {
- let key_pair=Keypair::from_bytes(&key_pair_bytes).map_err(|e|errors::ShopCustomError::getCustomError(e))?;
- Ok(key_pair)
+    let key_pair = Keypair::from_bytes(&key_pair_bytes)
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    Ok(key_pair)
 }
 
 fn configure_and_get_client(cluster: Cluster, payer_key_pair: Keypair) -> Client {
@@ -251,56 +263,15 @@ mod routes {
     use anchor_client::anchor_lang::system_program;
     use anchor_client::anchor_lang::system_program::System;
     use anchor_client::solana_sdk::config::program;
+    use anchor_client::solana_sdk::native_token::LAMPORTS_PER_SOL;
     use anchor_client::solana_sdk::signer::Signer;
     use log::debug;
     use log::info;
     use shop_manager::accounts;
     use shop_manager::instruction;
     use shop_manager::Good;
+    use shop_manager::GoodsAccount;
 
-    #[post("/insert_goods")]
-    pub async fn insert_goods(
-        shop_state: web::Data<ShopState<'static>>,
-        good: web::Json<Good>,
-    ) -> Result<String> {
-        let good = good.into_inner();
-        info!("good:{good:?}");
-        let goods_account_key_pair =keypair_from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)?;
-       
-      
-        info!("transactions ongoing...");
-        
-
-        let handle = std::thread::spawn(move || {
-            let program = try_get_program(shop_state.shop_configurations).map_err(|e|errors::ShopCustomError::getCustomError(e))?;
- 
-            let tx = program
-                .request()
-                .
-                accounts(accounts::AddGoods {
-                    goods_account: goods_account_key_pair.pubkey(),
-                })
-                .args(instruction::InsertGoods { good: good.clone() })
-                .send().map(|r|{
-                    return  r.to_string()
-                 }).map_err(|e|errors::ShopCustomError::getCustomError(e));
- 
-    
-            return tx;
-
-           
-        });
-        let tx_id = 
-        handle
-        .join()
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
-
-        //  debug!("tx_id:{tx_id}");
-
-        Ok(tx_id.to_string())
-    }
-    use actix_web::Result;
     #[post("/initialize")]
     pub async fn initialize(shop_state: web::Data<ShopState<'static>>) -> Result<String> {
         // Build and send a transaction.
@@ -308,20 +279,16 @@ mod routes {
         // Process each socket concurrently.
         info!("transactions ongoing...");
 
-     
         let goods_account_key_pair =
-            Keypair::from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)
-                .map_err(|e| return errors::ShopCustomError::getCustomError(e))?;
-        // let payer = shop_state.program.payer();
+            keypair_from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)?;
 
-         let signer = Keypair::from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e)).unwrap();
-     
         let handle = std::thread::spawn(move || {
-            let program = try_get_program(shop_state.shop_configurations).map_err(|e|errors::ShopCustomError::getCustomError(e))?;
+            let program = try_get_program(shop_state.shop_configurations)
+                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
             let payer = program.payer();
+
             info!("payer:{payer}");
-      
+
             let tx = program
                 .request()
                 .accounts(accounts::Initialize {
@@ -329,13 +296,13 @@ mod routes {
                     system_program: system_program::ID,
                     goods_account: goods_account_key_pair.pubkey(),
                 })
-                .signer(&signer)
+                .signer(&goods_account_key_pair)
                 .args(instruction::Initialize)
-                .send().map(|r|{
-                   return  r.to_string()
-                }).map_err(|e|errors::ShopCustomError::getCustomError(e));
+                .send()
+                .map(|r| return r.to_string())
+                .map_err(|e| errors::ShopCustomError::getCustomError(e));
 
-            return tx; 
+            return tx;
         });
         let tx_id = handle
             .join()
@@ -344,10 +311,80 @@ mod routes {
 
         let result = format!("transaction signature:{tx_id}");
         info!("{}", result);
-        Ok(result)
+        Ok(tx_id)
     }
 
+    #[post("/insert_goods")]
+    pub async fn insert_goods(
+        shop_state: web::Data<ShopState<'static>>,
+        good: web::Json<Good>,
+    ) -> Result<String> {
+        let good = good.into_inner();
+        info!("good:{good:?}");
+        let goods_account_key_pair =
+            keypair_from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)?;
 
+        info!("transactions ongoing...");
+
+        let handle = std::thread::spawn(move || {
+            let program = try_get_program(shop_state.shop_configurations)
+                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+            let tx = program
+                .request()
+                .accounts(accounts::AddGoods {
+                    goods_account: goods_account_key_pair.pubkey(),
+                })
+                .args(instruction::InsertGoods { good: good.clone() })
+                .send()
+                .map(|r| return r.to_string())
+                .map_err(|e| errors::ShopCustomError::getCustomError(e));
+
+            let goods_account: GoodsAccount = program
+                .account(goods_account_key_pair.pubkey())
+                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+            info!("goods_account: {goods_account:#?}");
+
+            return tx;
+        });
+        let tx_id = handle
+            .join()
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        //  debug!("tx_id:{tx_id}");
+
+        Ok(tx_id.to_string())
+    }
+    use actix_web::Result;
+
+    pub fn check_balance_of_fee_payer_and_airdrop(
+        program: &Program,
+    ) -> Result<String, errors::ShopCustomError> {
+        let payer = program.payer();
+
+        let tx_id = program
+            .rpc()
+            .request_airdrop(&payer, 50 * LAMPORTS_PER_SOL)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        info!(
+            "payer:{} has successfully received an airdrop of 3 SOL",
+            payer
+        );
+
+        let confirm_transaction = program
+            .rpc()
+            .confirm_transaction(&tx_id)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        info!("status of airdrop transaction:{}", confirm_transaction);
+
+        let balance = program
+            .rpc()
+            .get_balance(&payer)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        info!("payer id: {} current balance is :{}", payer, balance);
+
+        Ok(tx_id.to_string())
+    }
 }
 
 mod instructions {
@@ -376,5 +413,56 @@ mod modals {
         pub cluster_ws_url: String,
         pub payer_key_pair_bytes: [u8; 64],
         pub account_key_pair_bytes: [u8; 64],
+    }
+}
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+    use actix_web::{
+        body::MessageBody,
+        dev::{Service, ServiceResponse},
+        test, web, App,
+    };
+    use anchor_client::solana_client::client_error::reqwest::Request;
+    use base58::ToBase58;
+    use tokio::time::sleep;
+
+    #[actix_web::test]
+    async fn test_initialize_post() {
+        let shop_state = setup().await.unwrap();
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(shop_state))
+                .service(routes::initialize)
+                .service(routes::insert_goods),
+        )
+        .await;
+
+        let req = test::TestRequest::post().uri("/initialize").to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+        let bytes = resp.into_body().try_into_bytes().unwrap();
+        let tx_id = bytes.to_base58();
+        info!("signature:{}", tx_id);
+    }
+
+    async fn setup() -> ShopResult<ShopState<'static>> {
+        lazy_static! {
+            static ref SHOP_CONFIGURATIONS: ShopConfigurations =
+                setup_environment_and_get_configurations().unwrap();
+        }
+        let tx_id = tokio::task::spawn_blocking(|| -> Result<String, errors::ShopCustomError> {
+            let tx_id = request_airdrop_for_current_wallet(&SHOP_CONFIGURATIONS)
+                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+            std::thread::sleep(Duration::from_millis(500));
+            Ok(tx_id)
+        })
+        .await??;
+        info!("tx_id:{}",tx_id);
+        let shop_state = get_shop_state(&SHOP_CONFIGURATIONS)?;
+
+        Ok(shop_state)
     }
 }
