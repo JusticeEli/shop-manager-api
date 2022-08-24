@@ -6,6 +6,7 @@ pub fn keypair_from_bytes(key_pair_bytes: &[u8]) -> ShopResult<Keypair> {
 }
 
 
+use anchor_client::solana_sdk::native_token::LAMPORTS_PER_SOL;
 use log::error;
 pub fn get_key_pair_bytes_from_env_string_return_random_if_no_key_string_found(
     optional_string_key_pair: Option<&str>,
@@ -47,7 +48,7 @@ pub fn request_airdrop_for_current_wallet(
     let program = try_get_program(&shop_configurations)
         .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
     let payer = program.payer();
-    let tx_id = routes::check_balance_of_fee_payer_and_airdrop(&program)?;
+    let tx_id = check_balance_of_fee_payer_and_airdrop(&program)?;
     Ok(tx_id)
 }
 
@@ -64,4 +65,33 @@ pub fn try_parse_key_pair(key_pair_string: &str) -> ShopResult<Keypair> {
         .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
 
     Ok(key_pair)
+}
+
+pub fn check_balance_of_fee_payer_and_airdrop(
+    program: &Program,
+) -> Result<String, errors::ShopCustomError> {
+    let payer = program.payer();
+
+    let tx_id = program
+        .rpc()
+        .request_airdrop(&payer, 50 * LAMPORTS_PER_SOL)
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    info!(
+        "payer:{} has successfully received an airdrop of 3 SOL",
+        payer
+    );
+
+    let confirm_transaction = program
+        .rpc()
+        .confirm_transaction(&tx_id)
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    info!("status of airdrop transaction:{}", confirm_transaction);
+
+    let balance = program
+        .rpc()
+        .get_balance(&payer)
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    info!("payer id: {} current balance is :{}", payer, balance);
+
+    Ok(tx_id.to_string())
 }

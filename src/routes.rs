@@ -20,8 +20,9 @@ pub async fn initialize(shop_state: web::Data<ShopState<'static>>) -> Result<Str
     // Process each socket concurrently.
     info!("transactions ongoing...");
 
-    let goods_account_key_pair =
-        shop_solana_utils::keypair_from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)?;
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
 
     let handle = std::thread::spawn(move || {
         let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
@@ -59,17 +60,19 @@ pub async fn initialize(shop_state: web::Data<ShopState<'static>>) -> Result<Str
 pub async fn insert_goods(
     shop_state: web::Data<ShopState<'static>>,
     good: web::Json<Good>,
-) -> Result<String> {
+) -> Result<Json<Vec<Good>>> {
     let good = good.into_inner();
     info!("good:{good:?}");
-    let goods_account_key_pair =
-        shop_solana_utils::keypair_from_bytes(&shop_state.shop_configurations.account_key_pair_bytes)?;
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
 
     info!("transactions ongoing...");
 
-    let handle = std::thread::spawn(move || {
+    let handle = std::thread::spawn(move ||->Result<Vec<Good>, ShopCustomError> {
         let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
             .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
         let tx = program
             .request()
             .accounts(accounts::AddGoods {
@@ -78,51 +81,26 @@ pub async fn insert_goods(
             .args(instruction::InsertGoods { good: good.clone() })
             .send()
             .map(|r| return r.to_string())
-            .map_err(|e| errors::ShopCustomError::getCustomError(e));
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
 
         let goods_account: GoodsAccount = program
             .account(goods_account_key_pair.pubkey())
             .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
-        info!("goods_account: {goods_account:#?}");
 
-        return tx;
+
+        info!("goods_account: {goods_account:#?}");
+        info!("tx_id:{tx:?}");
+        let goods = goods_account.goods;
+
+        return Ok(goods);
     });
-    let tx_id = handle
+    let goods = handle
         .join()
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
+    // .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
 
     //  debug!("tx_id:{tx_id}");
 
-    Ok(tx_id.to_string())
+    Ok(Json(goods))
 }
 use actix_web::Result;
-
-pub fn check_balance_of_fee_payer_and_airdrop(
-    program: &Program,
-) -> Result<String, errors::ShopCustomError> {
-    let payer = program.payer();
-
-    let tx_id = program
-        .rpc()
-        .request_airdrop(&payer, 50 * LAMPORTS_PER_SOL)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
-    info!(
-        "payer:{} has successfully received an airdrop of 3 SOL",
-        payer
-    );
-
-    let confirm_transaction = program
-        .rpc()
-        .confirm_transaction(&tx_id)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
-    info!("status of airdrop transaction:{}", confirm_transaction);
-
-    let balance = program
-        .rpc()
-        .get_balance(&payer)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
-    info!("payer id: {} current balance is :{}", payer, balance);
-
-    Ok(tx_id.to_string())
-}
