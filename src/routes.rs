@@ -12,7 +12,7 @@ use shop_manager::accounts;
 use shop_manager::instruction;
 use shop_manager::Good;
 use shop_manager::GoodsAccount;
-
+use actix_web::Result;
 #[post("/initialize")]
 pub async fn initialize(shop_state: web::Data<ShopState<'static>>) -> Result<String> {
     // Build and send a transaction.
@@ -56,6 +56,7 @@ pub async fn initialize(shop_state: web::Data<ShopState<'static>>) -> Result<Str
     Ok(tx_id)
 }
 
+
 #[post("/insert_goods")]
 pub async fn insert_goods(
     shop_state: web::Data<ShopState<'static>>,
@@ -97,10 +98,182 @@ pub async fn insert_goods(
     let goods = handle
         .join()
         .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
-    // .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
 
-    //  debug!("tx_id:{tx_id}");
 
     Ok(Json(goods))
 }
-use actix_web::Result;
+
+
+
+#[post("/update_goods")]
+pub async fn update_goods(
+    shop_state: web::Data<ShopState<'static>>,
+    good: web::Json<Good>,
+) -> Result<Json<Vec<Good>>> {
+    let good = good.into_inner();
+    info!("good:{good:?}");
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
+
+    info!("transactions ongoing...");
+
+    let handle = std::thread::spawn(move ||->Result<Vec<Good>, ShopCustomError> {
+        let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let tx = program
+            .request()
+            .accounts(accounts::AddGoods {
+                goods_account: goods_account_key_pair.pubkey(),
+            })
+            .args(instruction::UpdateGoods { good: good.clone() })
+            .send()
+            .map(|r| return r.to_string())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let goods_account: GoodsAccount = program
+            .account(goods_account_key_pair.pubkey())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+
+        info!("goods_account: {goods_account:#?}");
+        info!("tx_id:{tx:?}");
+        let goods = goods_account.goods;
+
+        return Ok(goods);
+    });
+    let goods = handle
+        .join()
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
+
+
+    Ok(Json(goods))
+}
+
+#[post("/delete_goods")]
+pub async fn delete_goods(
+    shop_state: web::Data<ShopState<'static>>,
+    good: web::Json<Good>,
+) -> Result<Json<Vec<Good>>> {
+    let good = good.into_inner();
+    info!("good:{good:?}");
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
+
+    info!("transactions ongoing...");
+
+    let handle = std::thread::spawn(move ||->Result<Vec<Good>, ShopCustomError> {
+        let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let tx = program
+            .request()
+            .accounts(accounts::AddGoods {
+                goods_account: goods_account_key_pair.pubkey(),
+            })
+            .args(instruction::DeleteGoods { good_id: good.id })
+            .send()
+            .map(|r| return r.to_string())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let goods_account: GoodsAccount = program
+            .account(goods_account_key_pair.pubkey())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+
+        info!("goods_account: {goods_account:#?}");
+        info!("tx_id:{tx:?}");
+        let goods = goods_account.goods;
+
+        return Ok(goods);
+    });
+    let goods = handle
+        .join()
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
+
+
+    Ok(Json(goods))
+}
+
+
+
+#[post("/delete_all_goods")]
+pub async fn delete_all_goods(
+    shop_state: web::Data<ShopState<'static>>,
+    good: web::Json<Good>,
+) -> Result<Json<Vec<Good>>> {
+    let good = good.into_inner();
+    info!("good:{good:?}");
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
+
+    info!("transactions ongoing...");
+
+    let handle = std::thread::spawn(move ||->Result<Vec<Good>, ShopCustomError> {
+        let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let tx = program
+            .request()
+            .accounts(accounts::AddGoods {
+                goods_account: goods_account_key_pair.pubkey(),
+            })
+            .args(instruction::DeleteAllGoods)
+            .send()
+            .map(|r| return r.to_string())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let goods_account: GoodsAccount = program
+            .account(goods_account_key_pair.pubkey())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+
+        info!("goods_account: {goods_account:#?}");
+        info!("tx_id:{tx:?}");
+        let goods = goods_account.goods;
+
+        return Ok(goods);
+    });
+    let goods = handle
+        .join()
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
+
+
+    Ok(Json(goods))
+}
+#[post("/get_all_goods")]
+pub async fn get_all_goods(
+    shop_state: web::Data<ShopState<'static>>,
+    good: web::Json<Good>,
+) -> Result<Json<Vec<Good>>> {
+    let good = good.into_inner();
+    info!("good:{good:?}");
+    let goods_account_key_pair = shop_solana_utils::keypair_from_bytes(
+        &shop_state.shop_configurations.account_key_pair_bytes,
+    )?;
+
+    info!("transactions ongoing...");
+
+    let handle = std::thread::spawn(move ||->Result<Vec<Good>, ShopCustomError> {
+        let program = shop_anchor_utils::try_get_program(shop_state.shop_configurations)
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let goods_account: GoodsAccount = program
+            .account(goods_account_key_pair.pubkey())
+            .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+
+        let goods = goods_account.goods;
+
+        return Ok(goods);
+    });
+    let goods = handle
+        .join()
+        .map_err(|e| errors::ShopCustomError::getCustomError(e))??;
+
+
+    Ok(Json(goods))
+}
+

@@ -45,6 +45,7 @@ pub fn try_get_program_id(program_id_as_base_58: &str) -> ShopResult<Pubkey> {
 pub fn request_airdrop_for_current_wallet(
     shop_configurations: &ShopConfigurations,
 ) -> ShopResult<String> {
+    info!("request_airdrop_for_current_wallet");
     let program = try_get_program(&shop_configurations)
         .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
     let payer = program.payer();
@@ -70,15 +71,17 @@ pub fn try_parse_key_pair(key_pair_string: &str) -> ShopResult<Keypair> {
 pub fn check_balance_of_fee_payer_and_airdrop(
     program: &Program,
 ) -> Result<String, errors::ShopCustomError> {
-    let payer = program.payer();
 
+info!("check_balance_of_fee_payer_and_airdrop");
+    const SOLS:u64=50;
+    let payer = program.payer();
     let tx_id = program
         .rpc()
-        .request_airdrop(&payer, 50 * LAMPORTS_PER_SOL)
+        .request_airdrop(&payer, SOLS * LAMPORTS_PER_SOL)
         .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
     info!(
-        "payer:{} has successfully received an airdrop of 3 SOL",
-        payer
+        "payer:{} has successfully received an airdrop of {} SOLS",
+        payer,SOLS
     );
 
     let confirm_transaction = program
