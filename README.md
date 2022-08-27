@@ -137,13 +137,13 @@ This backend exposes functionality to help communicate with a [solana program](h
     Connection: close
 
 
-## Try to delete same Thing again
+## Try to delete same good again
 
 ### Request
 
-`DELETE /thing/id`
+`DELETE /good/id`
 
-    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/thing/1/
+    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/good/1/
 
 ### Response
 
@@ -156,13 +156,13 @@ This backend exposes functionality to help communicate with a [solana program](h
 
     {"status":404,"reason":"Not found"}
 
-## Get deleted Thing
+## Get deleted good
 
 ### Request
 
 `GET /thing/1`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
+    curl -i -H 'Accept: application/json' http://localhost:7000/good/1
 
 ### Response
 
