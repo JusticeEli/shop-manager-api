@@ -13,7 +13,7 @@ This backend exposes functionality to help communicate with a [solana program](h
 ## Run the app
 ```bash
 
-    cargo run `by default am running on port 8080,you can change the configurations in .env file`
+    cargo run # by default am running on port 8080,you can change the configurations in .env file
 ```        
 
 ## Run the tests
