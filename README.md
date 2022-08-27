@@ -5,29 +5,32 @@ The [frontend](https://github.com/JusticeEli/ShopManagement/tree/branch_1) commu
 
 This backend exposes functionality to help communicate with a [solana program](https://github.com/JusticeEli/shop-manager) in the network
 
-## Install
-
-    bundle install
+## Build
+```bash
+    $ cargo build
+ ```   
 
 ## Run the app
+```bash
 
-    unicorn -p 7000
+    cargo run `by default am running on port 8080,you can change the configurations in .env file`
+```        
 
 ## Run the tests
+```bash
+# This options and flag enable the tests to be run synchronously and the stdout to be displayed for each test
+    cargo test -- --test-threads=1 --nocapture 
+```
+# REST API ENDPOINTS
 
-    ./run-tests.sh
 
-# REST API
-
-The REST API to the example app is described below.
-
-## Get list of Things
+## Get list of goods
 
 ### Request
 
-`GET /thing/`
+`GET /goods/`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/
+    curl -i -H 'Accept: application/json' http://localhost:7000/goods/
 
 ### Response
 
@@ -40,13 +43,13 @@ The REST API to the example app is described below.
 
     []
 
-## Create a new Thing
+## Create a new Good
 
 ### Request
 
-`POST /thing/`
+`POST /goods/`
 
-    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/thing
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/goods
 
 ### Response
 
@@ -60,13 +63,13 @@ The REST API to the example app is described below.
 
     {"id":1,"name":"Foo","status":"new"}
 
-## Get a specific Thing
+## Get a specific Good
 
 ### Request
 
-`GET /thing/id`
+`GET /good/id`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
+    curl -i -H 'Accept: application/json' http://localhost:7000/good/1
 
 ### Response
 
@@ -79,13 +82,13 @@ The REST API to the example app is described below.
 
     {"id":1,"name":"Foo","status":"new"}
 
-## Get a non-existent Thing
+## Get a non-existent good
 
 ### Request
 
 `GET /thing/id`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/thing/9999
+    curl -i -H 'Accept: application/json' http://localhost:7000/good/9999
 
 ### Response
 
@@ -98,5 +101,76 @@ The REST API to the example app is described below.
 
     {"status":404,"reason":"Not found"}
 
-## Create another new Thing
-110
+## Update a good
+
+### Request
+
+`PUT /good/:id`
+
+    curl -i -H 'Accept: application/json' -X PUT -d 'name=Foo&status=changed2' http://localhost:7000/thing/1
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:31 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 41
+
+    {"id":1,"name":"Foo","status":"changed2"}
+    
+    
+    ## Delete a Thing
+
+### Request
+
+`DELETE /good/id`
+
+    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/good/1/
+
+### Response
+
+    HTTP/1.1 204 No Content
+    Date: Thu, 24 Feb 2011 12:36:32 GMT
+    Status: 204 No Content
+    Connection: close
+
+
+## Try to delete same Thing again
+
+### Request
+
+`DELETE /thing/id`
+
+    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/thing/1/
+
+### Response
+
+    HTTP/1.1 404 Not Found
+    Date: Thu, 24 Feb 2011 12:36:32 GMT
+    Status: 404 Not Found
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 35
+
+    {"status":404,"reason":"Not found"}
+
+## Get deleted Thing
+
+### Request
+
+`GET /thing/1`
+
+    curl -i -H 'Accept: application/json' http://localhost:7000/thing/1
+
+### Response
+
+    HTTP/1.1 404 Not Found
+    Date: Thu, 24 Feb 2011 12:36:33 GMT
+    Status: 404 Not Found
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 35
+
+    {"status":404,"reason":"Not found"}
