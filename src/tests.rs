@@ -1,6 +1,11 @@
 #![cfg(test)]
 
-use std::{process::{Child, Stdio}, time::Duration, io::Read, str::from_utf8};
+use std::{
+    io::Read,
+    process::{Child, Stdio},
+    str::from_utf8,
+    time::Duration,
+};
 
 use self::test_utils::airdrop_to_current_wallet;
 
@@ -73,9 +78,6 @@ fn init_test_validator_and_deploy_program() -> Child {
         .expect("solana-test-validator failed to execute");
     info!("solana_test_validator started...");
 
-
-
-
     std::thread::sleep(Duration::from_secs(7));
 
     Command::new("anchor")
@@ -89,12 +91,26 @@ fn init_test_validator_and_deploy_program() -> Child {
 
     solana_test_validator
 }
- #[actix_web::test]
+#[actix_web::test]
 async fn test_insert_goods_post() {
     let mut solana_test_validator = test_initialize_post_helper().await;
+
+    let good = Good {
+        name: "unga".to_string(),
+        image: "image1".to_string(),
+        id: 1,
+        price: 26,
+    };
+
+    test_insert_post_helper(&[good]).await;
+
+    tear_down(&mut solana_test_validator)
+}
+
+async fn test_insert_post_helper(goods: &[Good]) {
     let shop_state = test_utils::setup_configuration_and_return_state()
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 
     let app = test::init_service(
         App::new()
@@ -103,25 +119,68 @@ async fn test_insert_goods_post() {
             .service(routes::insert_goods),
     )
     .await;
+    let mut good_iter=goods.iter();
+    let mut expected_vect:Vec<Good> =vec![];
 
-    let good = Good {
-        name: "unga".to_string(),
-        image: "image1".to_string(),
-        id: 1,
-        price: 26,
-    };
-  
-    let req = test::TestRequest::post()
+    while let Some(good)=good_iter.next(){
+        let req = test::TestRequest::post()
         .uri("/insert_goods")
         .set_json(&good)
         .to_request();
-    let goods_vec: Vec<Good> = test::call_and_read_body_json(&app, req).await;
-    info!("goods_vec:{:?}", goods_vec);
-    assert_eq!(goods_vec, vec![good]);
-    
-    tear_down(&mut solana_test_validator)
+    expected_vect = test::call_and_read_body_json(&app, req).await;
 
-} 
+    }
+ 
+    info!("test_insert: expected_vect:{:?}", expected_vect);
+    assert_eq!(goods.to_vec(), expected_vect);
+}
+
+#[actix_web::test]
+async fn test_update_goods_post() {
+    let mut solana_test_validator = test_initialize_post_helper().await;
+    let shop_state = test_utils::setup_configuration_and_return_state()
+        .await
+        .unwrap();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(shop_state))
+            .service(routes::initialize)
+            .service(routes::insert_goods)
+            .service(routes::update_goods),
+    )
+    .await;
+
+    let good1 = Good {
+        name: "name 1".to_string(),
+        image: "".to_string(),
+        id: 1,
+        price: 26,
+    };
+    let good1_updated = Good {
+        name: "name 1 updated".to_string(),
+        image: "".to_string(),
+        id: 1,
+        price: 26,
+    };
+    let good2 = Good {
+        name: "name 2".to_string(),
+        image: "".to_string(),
+        id: 2,
+        price: 43,
+    };
+    test_insert_post_helper(&[good1.clone(),good2.clone()]).await;
+
+    let req = test::TestRequest::post()
+        .uri("/update_goods")
+        .set_json(&good1_updated)
+        .to_request();
+    let goods_vec: Vec<Good> = test::call_and_read_body_json(&app, req).await;
+    info!("updated goods_vec:{:?}", goods_vec);
+    assert_eq!(good1, good1_updated);
+
+    tear_down(&mut solana_test_validator)
+}
 
 mod test_utils {
     use super::*;
@@ -135,7 +194,7 @@ mod test_utils {
         }
         let tx_id = tokio::task::spawn_blocking(|| -> Result<String, errors::ShopCustomError> {
             let tx_id = shop_solana_utils::request_airdrop_for_current_wallet(&SHOP_CONFIGURATIONS)
-                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+                .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
             std::thread::sleep(Duration::from_millis(500));
             Ok(tx_id)
         })
@@ -161,7 +220,7 @@ mod test_utils {
     pub async fn airdrop_to_current_wallet(shop_configurations: &'static ShopConfigurations) {
         let tx_id = tokio::task::spawn_blocking(|| -> Result<String, errors::ShopCustomError> {
             let tx_id = shop_solana_utils::request_airdrop_for_current_wallet(shop_configurations)
-                .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+                .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
             info!("airdrop_to_current_wallet: tx_id:{}", tx_id);
 
             std::thread::sleep(Duration::from_millis(500));

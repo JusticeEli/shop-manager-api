@@ -17,6 +17,10 @@ pub async fn start_server(shop_configurations:&'static ShopConfigurations)->std:
             .app_data(Data::new(shop_state))
             .service(routes::initialize)
             .service(routes::insert_goods)
+            .service(routes::update_goods)
+            .service(routes::delete_goods)
+            .service(routes::delete_all_goods)
+            .service(routes::get_all_goods)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

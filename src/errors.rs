@@ -4,13 +4,16 @@ use std::fmt::Debug;
 pub struct ShopCustomError(pub String);
 
 impl ShopCustomError {
-    pub fn getCustomError<E: Debug>(e: E) -> ShopCustomError {
-        return Self(format!("{e:#?}"));
+    pub fn get_custom_error<E: Debug>(e: E) -> Self {
+        let error_string = format!("{e:#?}");
+        error!("{error_string}");
+    
+        Self(error_string)
     }
 }
 impl fmt::Display for ShopCustomError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}", self.0)
+        writeln!(f, "internal error occurred,please try again later")
     }
 }
 impl Error for ShopCustomError {}
@@ -18,4 +21,11 @@ impl Error for ShopCustomError {}
 struct ShopResponseError(ShopCustomError);
 
 impl ResponseError for ShopCustomError {}
+impl From<Box<dyn Error>> for ShopCustomError {
+
+    fn from(b: Box<dyn Error>) -> Self {
+        Self(b.to_string())
+    }
+}
 impl ResponseError for ShopResponseError {}
+

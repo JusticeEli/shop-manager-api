@@ -1,7 +1,7 @@
 use super::*;
 pub fn keypair_from_bytes(key_pair_bytes: &[u8]) -> ShopResult<Keypair> {
     let key_pair = Keypair::from_bytes(&key_pair_bytes)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
     Ok(key_pair)
 }
 
@@ -47,7 +47,7 @@ pub fn request_airdrop_for_current_wallet(
 ) -> ShopResult<String> {
     info!("request_airdrop_for_current_wallet");
     let program = try_get_program(&shop_configurations)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
     let payer = program.payer();
     let tx_id = check_balance_of_fee_payer_and_airdrop(&program)?;
     Ok(tx_id)
@@ -60,10 +60,10 @@ pub fn try_parse_key_pair(key_pair_string: &str) -> ShopResult<Keypair> {
         .split(',')
         .map(|p| p.parse::<u8>())
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
 
     let key_pair = Keypair::from_bytes(&key_pair_vec)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
 
     Ok(key_pair)
 }
@@ -78,7 +78,7 @@ info!("check_balance_of_fee_payer_and_airdrop");
     let tx_id = program
         .rpc()
         .request_airdrop(&payer, SOLS * LAMPORTS_PER_SOL)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
     info!(
         "payer:{} has successfully received an airdrop of {} SOLS",
         payer,SOLS
@@ -87,13 +87,13 @@ info!("check_balance_of_fee_payer_and_airdrop");
     let confirm_transaction = program
         .rpc()
         .confirm_transaction(&tx_id)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
     info!("status of airdrop transaction:{}", confirm_transaction);
 
     let balance = program
         .rpc()
         .get_balance(&payer)
-        .map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+        .map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
     info!("payer id: {} current balance is :{}", payer, balance);
 
     Ok(tx_id.to_string())

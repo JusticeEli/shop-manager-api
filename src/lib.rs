@@ -38,6 +38,7 @@ mod modals;
 mod routes;
 mod shop_anchor_utils;
 mod shop_solana_utils;
+mod thread_utils;
 mod tests;
 
 pub use configure::*;
@@ -47,6 +48,7 @@ pub use modals::*;
 pub use routes::*;
 pub use shop_anchor_utils::*;
 pub use shop_solana_utils::*;
+pub use thread_utils::*;
 
 type ShopResult<T> = Result<T, Box<dyn Error>>;
 

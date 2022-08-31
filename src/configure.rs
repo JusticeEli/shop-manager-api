@@ -1,7 +1,7 @@
 
 use super::*;
 pub fn get_environment_configurations() -> ShopResult<ShopConfigurations> {
-    dotenv().map_err(|e| errors::ShopCustomError::getCustomError(e))?;
+    dotenv().map_err(|e| errors::ShopCustomError::get_custom_error(e))?;
 
     for (key, value) in env::vars() {
         info!("config:  Key:{key} Value:{value}");
