@@ -24,13 +24,13 @@ This backend exposes functionality to help communicate with a [solana program](h
 # REST API ENDPOINTS
 
 
-## Get list of goods
+## Get list of Goods
 
 ### Request
 
 `GET /goods/`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/goods/
+    curl -i -H 'Accept: application/json' http://localhost:7000/goodss/
 
 ### Response
 
@@ -58,7 +58,7 @@ This backend exposes functionality to help communicate with a [solana program](h
     Status: 201 Created
     Connection: close
     Content-Type: application/json
-    Location: /thing/1
+    Location: /goods/1
     Content-Length: 36
 
     {"id":1,"name":"Foo","status":"new"}
@@ -67,9 +67,9 @@ This backend exposes functionality to help communicate with a [solana program](h
 
 ### Request
 
-`GET /good/id`
+`GET /goods/id`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/good/1
+    curl -i -H 'Accept: application/json' http://localhost:7000/goods/1
 
 ### Response
 
@@ -86,9 +86,9 @@ This backend exposes functionality to help communicate with a [solana program](h
 
 ### Request
 
-`GET /thing/id`
+`GET /goods/id`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/good/9999
+    curl -i -H 'Accept: application/json' http://localhost:7000/goods/9999
 
 ### Response
 
@@ -105,9 +105,9 @@ This backend exposes functionality to help communicate with a [solana program](h
 
 ### Request
 
-`PUT /good/:id`
+`PUT /goods/:id`
 
-    curl -i -H 'Accept: application/json' -X PUT -d 'name=Foo&status=changed2' http://localhost:7000/thing/1
+    curl -i -H 'Accept: application/json' -X PUT -d 'name=Foo&status=changed2' http://localhost:7000/goods/1
 
 ### Response
 
@@ -121,13 +121,13 @@ This backend exposes functionality to help communicate with a [solana program](h
     {"id":1,"name":"Foo","status":"changed2"}
     
     
-    ## Delete a Thing
+    ## Delete a goods
 
 ### Request
 
-`DELETE /good/id`
+`DELETE /goods/id`
 
-    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/good/1/
+    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/goods/1/
 
 ### Response
 
@@ -137,13 +137,13 @@ This backend exposes functionality to help communicate with a [solana program](h
     Connection: close
 
 
-## Try to delete same good again
+## Try to delete same Good again
 
 ### Request
 
-`DELETE /good/id`
+`DELETE /goods/id`
 
-    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/good/1/
+    curl -i -H 'Accept: application/json' -X DELETE http://localhost:7000/goods/1/
 
 ### Response
 
@@ -156,13 +156,13 @@ This backend exposes functionality to help communicate with a [solana program](h
 
     {"status":404,"reason":"Not found"}
 
-## Get deleted good
+## Get deleted goods
 
 ### Request
 
-`GET /thing/1`
+`GET /goods/1`
 
-    curl -i -H 'Accept: application/json' http://localhost:7000/good/1
+    curl -i -H 'Accept: application/json' http://localhost:7000/goods/1
 
 ### Response
 
