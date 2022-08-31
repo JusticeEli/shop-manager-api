@@ -1,9 +1,9 @@
 # shop manager api
 actix-web backend used to communicate with solana network
 
-The [frontend](https://github.com/JusticeEli/ShopManagement/tree/branch_1) communicating with this Rest api is a Native android application written using `Java` and `Kotlin`.
+The [frontend](https://github.com/JusticeEli/ShopManagement/tree/branch_1#readme) communicating with this Rest api is a Native android application written using `Java` and `Kotlin`.
 
-This backend exposes functionality to help communicate with a [solana program](https://github.com/JusticeEli/shop-manager) in the network
+This backend exposes functionality to help communicate with a [solana program](https://github.com/JusticeEli/shop-manager#readme) in the network
 
 ## Build
 ```bash
