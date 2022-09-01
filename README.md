@@ -1,9 +1,9 @@
 # shop manager api
-Rest API used to communicate with solana blockchain network.
+- Rest API used to communicate with solana blockchain network.
 
-The [frontend](https://github.com/JusticeEli/ShopManagement/tree/branch_1#readme) communicating with this Rest api is a Native android application written using `Java` and `Kotlin`.
+- The [frontend](https://github.com/JusticeEli/ShopManagement/tree/branch_1#readme) communicating with this Rest api is a Native android application written using `Java` and `Kotlin`.
 
-This backend exposes business logic to help communicate with a [solana smart contract](https://github.com/JusticeEli/shop-manager#readme).
+- This backend exposes business logic to help communicate with a [solana smart contract](https://github.com/JusticeEli/shop-manager#readme).
 
 ## Tech Stack
 - Rust
